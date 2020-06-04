@@ -25,6 +25,10 @@
 #Dont ignore build files
 !CMakeLists*
 
+#VS
+!*.sln
+!*.vcxproj
+
 !.gitignore
 
 !README.md
