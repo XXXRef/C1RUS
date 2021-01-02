@@ -1,33 +1,30 @@
 #Ignore all but folders
 *
-!*/
 
-#Dont ignore EXT folders contents
-!**/EXT/*
+#Dont ignore code folder
+#NOTE If only it's possible to parameterize .gitignore and use placeholder as code folder name here...
+!code/
+!code/**/
 
 #Dont ignore src files
-!*.c
-!*.cx
-!*.cxx
-!*.cpp
+!code/**/*.c
+!code/**/*.cx
+!code/**/*.cxx
+!code/**/*.cpp
 
 #Dont ignore header files
-!*.h
-!*.hx
-!*.hxx
-!*.hpp
+!code/**/*.h
+!code/**/*.hx
+!code/**/*.hxx
+!code/**/*.hpp
 
-#Ignore build stuff
-**/build
-**/BUILD
-**/cmake-build*
+#Dont ignore project files
+!code/**/*.sln
+!code/**/*.vcxproj
 
 #Dont ignore build files
-!CMakeLists*
+!code/**/CMakeLists*
 
-#VS
-!*.sln
-!*.vcxproj
 
 !.gitignore
 
