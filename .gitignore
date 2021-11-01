@@ -21,6 +21,7 @@
 #Dont ignore project files
 !code/**/*.sln
 !code/**/*.vcxproj
+!code/**/*.vcxproj.filters
 
 #Dont ignore build files
 !code/**/CMakeLists*
